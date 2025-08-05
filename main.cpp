@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cctype>
+#include <iomanip>
 #include <ios>
 #include <iostream>
 #include <istream>
@@ -10,7 +12,32 @@
 #include <sstream>
 #include <map>
 #include <charconv>
+#include <array>
+#include <execution>
+#include <optional>
 
+
+template <typename T>
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
+{
+	for(T str: vec)
+	{
+		out<<str<<' ';
+	}
+
+	return out<<'\n';
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& out, const std::optional<T>& data)
+{
+	if (data) 
+	{
+	
+		return out << data.value();
+	}
+	return out;
+}
 
 bool inputMatches(std::string_view input, std::string_view pattern, bool isMaskOk)
 {
@@ -116,7 +143,7 @@ public:
 	// Same goes here until finding about sets and maps in the STL
 	using Set = std::string;
 
-	using Priority = char;
+	using Priority = std::optional<char>;
 
 	bool m_isCompleted{};
 	Priority m_priority{};
@@ -127,6 +154,7 @@ public:
 	std::vector<std::string> m_contextTags{};
 	std::vector<Set> m_specialTags{};
 
+	std::string full_text{};
 
 public:
 
@@ -136,7 +164,9 @@ public:
 		size_t pos;
 
 		while ((pos = str.find(delim)) != std::string_view::npos) {
-			vec.push_back(str.substr(0, pos));    // part before delimiter
+			if(pos != 0)
+				vec.push_back(str.substr(0, pos));    // part before delimiter
+			
 			str.remove_prefix(pos + 1);           // move past delimiter
 		}
 
@@ -151,52 +181,62 @@ public:
 	Task() = default;
 	Task(std::string_view task)
 	{
+		full_text = std::string{task};
 		// if(std::islower(task.front()))
-		if(task.front() == 'x')
+		auto vec = split_by(task, ' ');
+		auto counter {0};
+
+		// if(task.front() == 'x')
+		if(vec[counter].front() == 'x')
 		{
+			counter++;
 			m_isCompleted = true;
-			task.remove_prefix(2)	;
 		}
 		else
 		{
 			m_isCompleted = false;
 		}
 
-		if( inputMatches(task.substr(0, 3), "(*) ", false) )
+		if( inputMatches(vec[counter].substr(0, 3), "(*)", false) )
 		{
-			m_priority = task.at(1);
-			task.remove_prefix(4);
+			m_priority = vec[counter][1];
+			counter++;
+		}
+		else
+		{
+			m_priority = std::nullopt;
 		}
 
 
-
-		if (Date::isDateFormat(task.substr(0,10))) 
+		if (Date::isDateFormat(vec[counter].substr(0,10))) 
 		{
 			if (m_isCompleted)
 			{
-				m_completionDate = {task.substr(0,10)} ;
-			
-				task.remove_prefix(11);
+				m_completionDate = {vec[counter].substr(0,10)} ;
+				counter++;
 
-				if (Date::isDateFormat(task.substr(0,10))) 
+				if (Date::isDateFormat(vec[counter].substr(0,10))) 
 				{
-					m_creationDate = {task.substr(0,10)};
-					task.remove_prefix(11);
+					m_creationDate = {vec[counter].substr(0,10)};
+					counter++;
 				}
 			}
 			else
 			{
-				m_creationDate = {task.substr(0,10)} ;
-				task.remove_prefix(11);
+				m_creationDate = {vec[counter].substr(0,10)} ;
+				counter++;
 			}
 		}
 
-		m_desc = std::string{task};
+		// m_desc = std::string{task};
 
-		std::vector<std::string_view> words = {split_by(task, ' ')};
+		// std::vector<std::string_view> words = {split_by(task, ' ')};
+		std::vector<std::string_view> words {vec.begin() + counter, vec.end()};
 
 		for (auto word : words) // Will change word to auto but clangd gives warning
 		{
+			m_desc += word;
+			m_desc += ' ';
 			if(word.front() == '+')
 			{
 				m_projectTags.push_back(std::string{word.substr(1)});
@@ -214,27 +254,56 @@ public:
 
 	}
 
+	bool operator>(const Task& task) const
+	{
+		if (m_isCompleted != task.m_isCompleted) {
+		
+			return task.m_isCompleted;
+		}
+
+		if (m_priority)
+		{
+			if (!task.m_priority) 
+			{
+				return true;
+			}
+
+			return m_priority < task.m_priority; // First chars are Higher priority
+		
+		}
+		else if (task.m_priority)
+		{
+			return false;
+		}
+
+		// Should have creation date comparison here but won't do
+
+		return m_desc > task.m_desc;
+	}
 
 
 	friend std::ostream& operator<<(std::ostream& out, const Task& task)
 	{
-		out << task.m_isCompleted << " (" << task.m_priority << ") " << task.m_completionDate << " " << task.m_creationDate << " " << task.m_desc << '\n';
+		out<<task.full_text<<'\n';
+		out << task.m_isCompleted <<std::setfill('0') << std::setw(2) << " (" << task.m_priority << ") " << task.m_completionDate << " " << task.m_creationDate << " " << task.m_desc << '\n';
+		out << "Context Tags: " << task.m_contextTags;
+		out << "Project Tags: " << task.m_projectTags;
+		out << "Special Tags: " << task.m_specialTags;
 		return out;
 	}
 };
 
-template <typename T>
-std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
+std::ostream& operator<<(std::ostream& out, const std::vector<Task>& vec)
 {
-	for(T str: vec)
+	for(Task str: vec)
 	{
-		out<<str<<' ';
+		out<<str<<'\n';
 	}
 
 	return out<<'\n';
 }
 
-#include <array>
+
 int main()
 {
 	// For Now will use a string
@@ -244,7 +313,7 @@ int main()
 
 	// Task taskO{task1};
 
-	std::array tasks {
+	std::vector tasks {
 		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
 		Task{" (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
 		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30 "} ,
@@ -285,6 +354,16 @@ int main()
 
 	};
 
+	
+
+	// std::sort()
+	std::sort(std::execution::seq, tasks.begin(), tasks.end(), [](const Task& task1, const Task& task2)
+	   {
+	   // return task1.m_isCompleted > task2.m_isCompleted;
+	   return task1 > task2;
+	   });
+
+	std::cout<<tasks;
 
 	// std::cout << taskO;
 	// std::cout << taskO.m_projectTags;
