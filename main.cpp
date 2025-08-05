@@ -8,6 +8,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include <sstream>
 #include <map>
@@ -15,6 +16,7 @@
 #include <array>
 #include <execution>
 #include <optional>
+#include <fstream>
 
 
 template <typename T>
@@ -183,10 +185,12 @@ public:
 	{
 		full_text = std::string{task};
 		// if(std::islower(task.front()))
-		auto vec = split_by(task, ' ');
+		auto vec  {split_by(task, ' ')};
+		auto words_n {vec.size()};
 		auto counter {0};
 
 		// if(task.front() == 'x')
+		if (counter == words_n) return;
 		if(vec[counter].front() == 'x')
 		{
 			counter++;
@@ -197,6 +201,7 @@ public:
 			m_isCompleted = false;
 		}
 
+		if (counter == words_n) return;
 		if( inputMatches(vec[counter].substr(0, 3), "(*)", false) )
 		{
 			m_priority = vec[counter][1];
@@ -208,6 +213,7 @@ public:
 		}
 
 
+		if (counter == words_n) return;
 		if (Date::isDateFormat(vec[counter].substr(0,10))) 
 		{
 			if (m_isCompleted)
@@ -215,6 +221,7 @@ public:
 				m_completionDate = {vec[counter].substr(0,10)} ;
 				counter++;
 
+				if (counter == words_n) return;
 				if (Date::isDateFormat(vec[counter].substr(0,10))) 
 				{
 					m_creationDate = {vec[counter].substr(0,10)};
@@ -281,14 +288,21 @@ public:
 		return m_desc > task.m_desc;
 	}
 
+	friend std::istream& operator>>(std::istream& in, Task& task)
+	{
+		std::string task_str{};
+		std::getline(in, task_str);
+		task = Task{task_str};
+		return in;
+	}
 
 	friend std::ostream& operator<<(std::ostream& out, const Task& task)
 	{
 		out<<task.full_text<<'\n';
 		out << task.m_isCompleted <<std::setfill('0') << std::setw(2) << " (" << task.m_priority << ") " << task.m_completionDate << " " << task.m_creationDate << " " << task.m_desc << '\n';
-		out << "Context Tags: " << task.m_contextTags;
-		out << "Project Tags: " << task.m_projectTags;
-		out << "Special Tags: " << task.m_specialTags;
+		// out << "Context Tags: " << task.m_contextTags;
+		// out << "Project Tags: " << task.m_projectTags;
+		// out << "Special Tags: " << task.m_specialTags;
 		return out;
 	}
 };
@@ -313,7 +327,24 @@ int main()
 
 	// Task taskO{task1};
 
+	std::fstream file{"todo.txt",std::ios::in | std::ios::out};
+
+	std::vector<std::pair<int,Task>> file_tasks{};
+	std::vector<std::pair<int,int>> lines_pos{};
+
+	std::vector<Task> temp_file_tasks{};
+	
+	int i{};
+	for(Task curr_task{}; file>>curr_task;i++)
+	{
+
+		file_tasks.push_back(std::pair<int, Task>{i,curr_task});
+		temp_file_tasks.push_back(curr_task);
+		lines_pos.push_back(std::pair<int,int>{i,file.tellg()});
+	}
+
 	std::vector tasks {
+
 		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
 		Task{" (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
 		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30 "} ,
@@ -363,7 +394,12 @@ int main()
 	   return task1 > task2;
 	   });
 
-	std::cout<<tasks;
+	std::sort(std::execution::seq, tasks.begin(), tasks.end(), [](const Task& task1, const Task& task2)
+	   {
+	   // return task1.m_isCompleted > task2.m_isCompleted;
+	   return task1 > task2;
+	   });
+	std::cout<<temp_file_tasks;
 
 	// std::cout << taskO;
 	// std::cout << taskO.m_projectTags;
