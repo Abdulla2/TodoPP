@@ -29,7 +29,7 @@ std::vector<std::string_view> Task::split_by(std::string_view str, char delim)
 }
 
 // Parses a task in the shape of todo.txt format and saves it
-Task::Task(std::string_view task, int id = 0): m_id{id}
+Task::Task(std::string_view task, int id): m_id{id}
 {
 	auto vec  {split_by(task, ' ')};
 

@@ -16,7 +16,7 @@ public:
 	using Set = std::pair<std::string_view, std::string_view>;
 
 	Task() = default;
-	Task(std::string_view task, int id );
+	Task(std::string_view task, int id = 0);
 	
 
 	void setId(int id);
