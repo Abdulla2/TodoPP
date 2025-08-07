@@ -33,16 +33,6 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
 	return out<<'\n';
 }
 
-template <typename T>
-std::ostream& operator<<(std::ostream& out, const std::optional<T>& data)
-{
-	if (data) 
-	{
-
-		return out << data.value();
-	}
-	return out;
-}
 
 bool inputMatches(std::string_view input, std::string_view pattern, bool isMaskOk)
 {
@@ -78,51 +68,7 @@ bool inputMatches(std::string_view input, std::string_view pattern, bool isMaskO
 	}); // end of lambda
 }
 
-class Date 
-{
-private:
-	int m_day {};
-	int m_month {};
-	int m_year {};
-public:
-	static bool isDateFormat(const std::string_view date)
-	{
-		return inputMatches(date, "####-##-##", false);
-	}
-	Date() : m_day{}, m_month{}, m_year{}
-	{
-	}
-
-	Date(const Date&) = default;
-
-	Date(std::string_view date) 
-	{
-		if(isDateFormat(date))
-		{
-			std::from_chars(date.data(), date.data() + 4, m_year, 10);
-			date.remove_prefix(5);
-			std::from_chars(date.data(), date.data() + 2, m_month);
-			date.remove_prefix(3);
-			std::from_chars(date.data(), date.data() + 2, m_day);
-		}
-	}
-
-	Date& operator=(std::string_view date)
-	{
-		auto ddate {Date{date}};
-		*this = ddate;
-		return *this;
-	}
-
-	friend std::ostream& operator<<(std::ostream& out, const Date& date)
-	{
-		out <<std::setfill('0') << std::setw(2) << date.m_year << '-' ;
-		out <<std::setfill('0') << std::setw(2) << date.m_month << '-';
-		out <<std::setfill('0') << std::setw(2) << date.m_day;
-		return out;
-	}
-
-};
+;
 
 // struct Completion
 // {
@@ -388,7 +334,8 @@ class Todo
 {
 
 
-	std::vector<Task> m_tasks{};
+	static constexpr auto m_defaultNumberOfbytesInFile{800};
+	std::vector<Task> m_tasks;
 	// std::unordered_map<std::string, std::shared_ptr<Task>> projectsToTasks{};
 	bool m_fileDirty{false};
 	std::fstream m_file;
@@ -409,10 +356,11 @@ class Todo
 		return vec;
 	}
 public:
-	Todo(std::fstream file, int size_of_file = 800)
+	Todo(std::fstream file, int size_of_file = m_defaultNumberOfbytesInFile)
 	{
 		// Average line length of 80
-		m_tasks.reserve(size_of_file/80);
+		static constexpr auto average_line_size{80};
+		m_tasks.reserve(size_of_file/average_line_size);
 		int curr_line {0};
 		int curr_pos {0};
 		
@@ -444,20 +392,29 @@ public:
 		m_fileDirty = file_dirty;
 	}
 
+	Todo(std::string_view file_name, int size_of_file = m_defaultNumberOfbytesInFile) :  Todo{std::fstream{std::string{file_name}}, size_of_file}
+	{
+	// std::fstream file{std::string{file_name}, std::ios::in | std::ios::out};
+	// 	Todo{file, size_of_file};
+
+	}
 	void add(Task& task)
 	{
 		m_fileDirty = true;
+		task.setId(m_tasks.size());
 		m_tasks.push_back(task);
 	}
 
 	void add(std::string_view task)
 	{
 		m_fileDirty = true;
-		m_tasks.push_back(task);
+		m_tasks.push_back({task, static_cast<int>(m_tasks.size())});
+
 	}
 
 	void remove(int id);
 
+	const std::vector<Task>& getAllTasks() const { return m_tasks;}
 	const Task* getTaskById(const int id) const 
 	{
 		auto found = std::find_if(m_tasks.begin(), m_tasks.end(), [id](const Task& task)
@@ -520,95 +477,23 @@ public:
 
 };
 
-int main()
+int main(int argc, const char* argv[])
 {
-	// For Now will use a string
-	// std::string task1 {"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"};
-	// std::string task2 {"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"};
-	// std::string task1 {"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"};
-
-	// Task taskO{task1};
-
-	std::fstream file{"todo.txt",std::ios::in | std::ios::out};
-
-	std::vector<std::pair<int,Task>> file_tasks{};
-	std::vector<std::pair<int,int>> lines_pos{};
-
-	std::vector<Task> temp_file_tasks{};
-
-	int i{};
-	for(Task curr_task{}; file>>curr_task;i++)
+	
+	std::string_view file_name{};
+	if (argc > 1)
 	{
-
-		file_tasks.push_back(std::pair<int, Task>{i,curr_task});
-		temp_file_tasks.push_back(curr_task);
-		lines_pos.push_back(std::pair<int,int>{i,file.tellg()});
+		file_name = argv[1];
 	}
+	else
+	{
+		file_name = "todo.txt";
+	}
+	// std::fstream file{"todo.txt",std::ios::in | std::ios::out};
 
-	std::vector tasks {
+	auto todo {Todo{file_name, 200}};
+	// auto todo {Todo(std::move(file), 0)};
 
-		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{" (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30 "} ,
-		Task{"x (A) 2016-05-20 2016-04-30 measure   space for +chapelShelving @chapel due:2016-05-30 @python"} ,
-		Task{"x 2016-05-20 2016-04-30    measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{" 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{"x (A)  measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{"measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{" measure space for +chapelShelving @chapel due:2016-05-30"} ,
-		Task{"x (A) 2016-05-20 2016-04-30 measure space for +chapelShelving @chapel due:2016-05-30"} ,
-
-
-		//New New
-
-		Task{"x (D) 2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-
-		Task{" (B) 2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"(B) 2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-
-		Task{"x  2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"x 2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{" 2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"2026-01-04 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-
-		Task{"x (D) 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"x  2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"x 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"(D) 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{" (D) 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{" (D) 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{" 2025-08-05 Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		Task{"Make the best @todo program in the world in +C++ for +learning the language for @quitting from +TWI due:2026-01-01 Plan:A Type:learning"},
-		// Task{task1}
-		// Task{task1}
-
-
-	};
-
-
-
-	// std::sort()
-	std::sort(std::execution::seq, tasks.begin(), tasks.end(), [](const Task& task1, const Task& task2)
-	   {
-	   // return task1.m_isCompleted > task2.m_isCompleted;
-	   return task1 > task2;
-	   });
-
-	std::sort(std::execution::seq, temp_file_tasks.begin(), temp_file_tasks.end(), [](const Task& task1, const Task& task2)
-	   {
-	   // return task1.m_isCompleted > task2.m_isCompleted;
-	   return task1 > task2;
-	   });
-	std::cout<<temp_file_tasks;
-
-	// std::cout << taskO;
-	// std::cout << taskO.m_projectTags;
-	// std::cout << taskO.m_specialTags;
-	// std::cout << taskO.m_contextTags;
-
-
+	std::cout << todo.getAllTasks();
 	return 0;
-
 }
