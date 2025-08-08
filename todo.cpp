@@ -12,25 +12,17 @@ Todo::Todo(std::fstream file, int size_of_file)
 	static constexpr auto average_line_size{80};
 	m_tasks.reserve(size_of_file/average_line_size);
 	int curr_line {0};
-	int curr_pos {0};
+	// int curr_pos {0};
 
 	for(Task curr_task{}; file>>curr_task;curr_line++)
 	{
-
-		// auto curr_task_ptr = m_tasks.emplace_back(std::make_shared<Task>(curr_task));
 		m_tasks.push_back(curr_task);
 		curr_task.setId(curr_line);
-		curr_pos = file.tellg();
-
-		// for(auto project: curr_task.getProjects())
-		// {
-		// 	projectsToTasks.insert_or_assign(project, curr_task_ptr);
-		//
-		// }
-
-		// temp_file_tasks.push_back(curr_task);
-		// lines_pos.push_back(std::pair<int,int>{i,file.tellg()});
 	}
+
+	if(!file.eof()) throw "Error Parsing the file";
+
+	m_currentLastId = curr_line;
 
 	bool file_dirty {false};
 	std::sort(std::execution::seq, m_tasks.begin(), m_tasks.end(), [&file_dirty](const Task& task1, const Task& task2)
@@ -45,7 +37,7 @@ Todo::Todo(std::fstream file, int size_of_file)
 void Todo::add(Task& task)
 {
 	m_fileDirty = true;
-	task.setId(m_tasks.size());
+	task.setId(m_currentLastId++);
 	m_tasks.push_back(task);
 }
 
@@ -53,12 +45,23 @@ void Todo::add(std::string_view task)
 {
 	m_fileDirty = true;
 	m_tasks.push_back({task, static_cast<int>(m_tasks.size())});
-
 }
 
-void remove(int id);
+void Todo::remove(int id)
+{
+	m_fileDirty = true;
+	
+	if((id < m_tasks.size()) && (m_tasks[id].getId() == id))
+	{
+		m_tasks.erase(m_tasks.begin() + id);
+		return;
+	}
+
+	m_tasks.erase(getTaskPosById(id));
+}
 
 const std::vector<Task>& Todo::getAllTasks() const { return m_tasks;}
+
 const Task* Todo::getTaskById(const int id) const 
 {
 	auto found = std::find_if(m_tasks.begin(), m_tasks.end(), [id](const Task& task)
@@ -70,6 +73,16 @@ const Task* Todo::getTaskById(const int id) const
 		return &(*found);
 	}
 	return nullptr;
+}
+
+const std::vector<Task>::const_iterator Todo::getTaskPosById(const int id) const 
+{
+	auto found = std::find_if(m_tasks.begin(), m_tasks.end(), [id](const Task& task)
+			   {
+			   return (task.getId() == id);
+			   });
+
+	return found;
 }
 
 const std::vector<Task> Todo::getTasksByProject(std::string_view project) const
@@ -94,8 +107,24 @@ const std::vector<Task> Todo::getTasksByTag(std::string_view tag) const
 	return getTasksBy(searcher);
 }
 
-const std::vector<Task> Todo::getTasksByCreationDate(std::string_view date) const;
-const std::vector<Task> Todo::getTasksByCreationDate(const Date& date) const;
+const std::vector<Task> Todo::getTasksByCreationDate(std::string_view date) const
+{
+	return getTasksByCreationDate(Date{date});
+}
+
+const std::vector<Task> Todo::getTasksByCreationDate(const Date& date) const
+{
+	auto searcher = [date](const Task& task)
+		{
+			const std::optional<Date> curr_task_date = task.getCreationDate();
+			if (curr_task_date)
+			{
+				return date == *(curr_task_date);
+			}
+			return false;
+		};
+	return getTasksBy(searcher);
+}
 
 const std::vector<Task> Todo::getCompletedTasks() const
 {

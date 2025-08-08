@@ -5,9 +5,8 @@
 #include "date.h"
 
 
-
-
-
+namespace TodoPP
+{
 Date::Date() : m_day{}, m_month{}, m_year{}
 {
 }
@@ -32,6 +31,29 @@ Date& Date::operator=(std::string_view date)
 	return *this;
 }
 
+
+bool Date::operator==(const Date& date) const
+{
+	if((m_day != 0) && (date.m_day != 0))
+	{
+		if(m_day != date.m_day) return false;
+	}
+
+	if((m_month != 0) && (date.m_month != 0))
+	{
+		if(m_month != date.m_month) return false;
+	}
+
+	if((m_year != 0) && (date.m_year != 0))
+	{
+		if(m_year != date.m_year) return false;
+	}
+
+	return true;
+}
+
+bool Date::operator!=(Date& date) const{ return !(*this == date); }
+
 std::ostream& operator<<(std::ostream& out, const Date& date)
 {
 	out <<std::setfill('0') << std::setw(2) << date.m_year << '-' ;
@@ -43,4 +65,4 @@ std::ostream& operator<<(std::ostream& out, const Date& date)
 
 
 
-
+}
