@@ -3,6 +3,8 @@
 #include <cctype>
 #include <string_view>
 
+namespace TodoPP
+{
 class Date 
 {
 private:
@@ -45,7 +47,12 @@ public:
 	
 
 	Date& operator=(std::string_view date);
+	bool operator==(const Date& date) const;
+	bool operator!=(Date& date) const;
 
 	friend std::ostream& operator<<(std::ostream& out, const Date& date);
 
+
 };
+}
+
