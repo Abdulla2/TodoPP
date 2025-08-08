@@ -1,0 +1,3 @@
+#cmakedefine TodoPP_VERSION_MAJOR @TodoPP_VERSION_MAJOR@
+#cmakedefine TodoPP_VERSION_MINOR @TodoPP_VERSION_MINOR@
+#cmakedefine TodoPP_VERSION_PATCH @TodoPP_VERSION_PATCH@
