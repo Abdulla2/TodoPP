@@ -1,25 +1,9 @@
-#include <algorithm>
-#include <cctype>
-#include <iomanip>
-#include <ios>
 #include <iostream>
-#include <istream>
-#include <iterator>
-#include <list>
-#include <memory>
 #include <ostream>
-#include <string>
 #include <string_view>
-#include <unordered_map>
-#include <utility>
 #include <vector>
-#include <sstream>
-#include <map>
-#include <charconv>
-#include <array>
-#include <execution>
-#include <optional>
-#include <fstream>
+#include "task.h"
+#include "todo.h"
 
 
 template <typename T>
@@ -37,10 +21,10 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
 
 
 
-std::ostream& operator<<(std::ostream& out, const std::vector<Task>& vec)
+std::ostream& operator<<(std::ostream& out, const std::vector<TodoPP::Task>& vec)
 {
 
-	for(Task str: vec)
+	for(TodoPP::Task str: vec)
 	{
 		out<<str<<'\n';
 	}
@@ -63,7 +47,7 @@ int main(int argc, const char* argv[])
 	}
 	// std::fstream file{"todo.txt",std::ios::in | std::ios::out};
 
-	auto todo {Todo{file_name, 200}};
+	auto todo {TodoPP::Todo{file_name, 200}};
 	// auto todo {Todo(std::move(file), 0)};
 
 	std::cout << todo.getAllTasks();

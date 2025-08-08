@@ -16,34 +16,46 @@ private:
 		priority,
 		completion_date,
 		creation_date,
+		desc_first,
 		desc,
 	};
 public:
-	Parser(Task& task, std::size_t words_count = 0, std::size_t task_size = 0): m_task{task}, m_counter{0}, m_prependedStringSize{0}, m_wordsCount{words_count}, m_taskSize{task_size}, m_editingDesc{false} {}
+	Parser(Task& task, std::size_t words_count = 0, std::size_t task_size = 0): m_task{task}, m_counter{0}, m_prependedStringSize{0}, m_wordsCount{words_count}, m_taskSize{task_size}, m_editingDesc{false}, m_step{ParseStep::completion_mark} {}
 
+	void stateMachine(std::string_view str)
+	{
+		switch(m_step)
+		{
+			case ParseStep::completion_mark:
+				completionMark(str);
+				break;
+			case ParseStep::priority:
+				priority(str);
+				break;
+			case ParseStep::completion_date:
+				completionDate(str);
+				break;
+			case ParseStep::creation_date:
+				creationDate(str);
+				break;
+			case ParseStep::desc_first:
+				descPrepare(str);
+				[[fallthrough]];
+			case ParseStep::desc:
+				descWord(str);
+				break;
+			default:
+				assert(false);
+				break;
+		}
+	}
 	void word(std::string_view str)
 	{
 		if(str.size() < 1) return;
-		if(m_wordsCount >= m_counter) return;
+		if(m_wordsCount <= m_counter) return;
 
 		m_counter++;
-		switch(static_cast<ParseStep>(m_counter))
-		{
-			case ParseStep::completion_mark:
-				break;
-			case ParseStep::priority:
-				break;
-			case ParseStep::completion_date:
-				break;
-			case ParseStep::creation_date:
-				break;
-			case ParseStep::desc:
-				descPrepare(str);
-				[[fallthrough]];
-			default:
-				descWord(str);
-				break;
-		}
+		stateMachine(str);
 	}
 
 	void desc()
@@ -77,6 +89,7 @@ public:
 private:
 	void completionMark(std::string_view str)
 	{
+		m_step = {ParseStep::priority};
 		if(str.front() == 'x')
 		{
 			m_prependedStringSize += 2;
@@ -85,20 +98,24 @@ private:
 		else
 		{
 			m_task.m_isCompleted = false;
+			stateMachine(str);
 		}
 	}
 
 	// @desc: Checks if string is in priority format: (A)
 	constexpr inline static bool isPriority(const std::string_view str)
 	{
-		assert(str.size() >= 3);
-
-		if (str[0] == '(' && str[2] == ')' && std::isupper(str[1])) return true;
+		if(str.size() >= 3)
+		{
+			if (str[0] == '(' && str[2] == ')' && std::isupper(str[1])) return true;
+			else return false;
+		}
 		else return false;
 	}
 
 	void priority(std::string_view str)
 	{
+		m_step = {ParseStep::completion_date};
 		if( isPriority(str) )
 		{
 			m_task.m_priority = str[1];
@@ -107,6 +124,7 @@ private:
 		else
 		{
 			m_task.m_priority = std::nullopt;
+			stateMachine(str);
 		}
 	}
 
@@ -114,35 +132,34 @@ private:
 	{
 		if (Date::isDateFormat(str.substr(0,10))) 
 		{
+			m_prependedStringSize += 12;
 			return {str};
-
 		}
+		stateMachine(str);
 		return std::nullopt; 
 	}
 
 	void creationDate(std::string_view str)
 	{
+		m_step = {ParseStep::desc_first};
 		m_task.m_creationDate = date(str);
-		m_prependedStringSize += 12;
 	}
 
 	void completionDate(std::string_view str)
 	{
+		m_step = {ParseStep::creation_date};
 		if(m_task.m_isCompleted)
 		{
 			m_task.m_completionDate = date(str);
-			m_prependedStringSize += 12;
 		}
 		else
 		{
-			m_counter++;
-			creationDate(str);
+			stateMachine(str);
 		}
 	}
 
 	void descWord(std::string_view word)
 	{
-
 		auto word_size {word.size()};
 		m_task.m_desc += word;
 		m_task.m_desc += ' ';
@@ -162,7 +179,10 @@ private:
 		else if( word.find_first_of(':') != std::string_view::npos)
 		{
 			auto tag{Task::split_by(curr_word, ':')};
-			m_task.m_specialTags.push_back(std::make_pair(tag[0], tag[1]));
+			if(tag.size() == 2)
+			{
+				m_task.m_specialTags.push_back(std::make_pair(tag[0], tag[1]));
+			}
 		}
 	}
 
@@ -174,11 +194,13 @@ private:
 		m_task.m_projectTags.reserve(m_wordsCount / 3);
 		m_task.m_specialTags.reserve(m_wordsCount / 3);
 		m_task.m_contextTags.reserve(m_wordsCount / 3);
+		m_step = {ParseStep::desc};
 	}
 private:
 	Task& m_task;
 	std::size_t m_taskSize{};
 	int m_counter{};
+	ParseStep m_step{};
 	int m_prependedStringSize{};
 	std::size_t m_wordsCount{};
 	bool m_editingDesc{};
