@@ -19,14 +19,12 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
 
 
 
-
-
 std::ostream& operator<<(std::ostream& out, const std::vector<TodoPP::Task>& vec)
 {
 
 	for(TodoPP::Task str: vec)
 	{
-		out<<str<<'\n';
+		out<<str;
 	}
 
 	return out<<'\n';
@@ -47,9 +45,22 @@ int main(int argc, const char* argv[])
 	}
 	// std::fstream file{"todo.txt",std::ios::in | std::ios::out};
 
+	try {
+	
 	auto todo {TodoPP::Todo{file_name, 200}};
+
+	todo.add("(B) Do this Most important thing @test +project");
+	
+		todo.flushToFile();
+
+
 	// auto todo {Todo(std::move(file), 0)};
 
 	std::cout << todo.getAllTasks();
+	} catch (const char*) {
+		std::cout << "Exception" ;
+		
+	
+	}
 	return 0;
 }

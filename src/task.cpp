@@ -56,11 +56,11 @@ const Task::Priority Task::getPriority() const { return m_priority;}
 const std::optional<Date> Task::getCreationDate() const { return m_creationDate;}
 const std::optional<Date> Task::getCompletionDate() const { return m_completionDate;}
 
-
 void Task::descChanged()
 {
 	Parser parser{*this};
 	parser.desc();
+	taskChanged();
 }
 
 void Task::appendToDesc(std::optional<const char> ch, std::string_view str)
@@ -96,8 +96,6 @@ void Task::removeWordFromDesc(std::optional<const char> ch, std::string_view wor
 	descChanged();
 }
 
-
-
 void Task::editDesc(std::string_view desc)
 {
 	m_desc = {static_cast<std::string>(desc)};
@@ -113,17 +111,61 @@ void Task::removeContext(const std::string_view context){ removeWordFromDesc('@'
 void Task::removeTag(const std::string_view tag){ removeWordFromDesc(std::nullopt, tag); }
 
 
-void Task::setPriority(char priority) { m_priority = priority;}
-void Task::clearPriority() { m_priority = std::nullopt;}
+void Task::setPriority(char priority) 
+{
+	m_priority = priority;
+	taskChanged();
+}
+void Task::clearPriority() 
+{
+	m_priority = std::nullopt;
+	taskChanged();
+}
 
-void Task::setCompletionDate(Date& date){m_completionDate = {date};}
-void Task::setCreationDate(Date& date){m_creationDate = {date};}
+void Task::setCompletionDate(Date& date)
+{
+	m_completionDate = {date};
+	taskChanged();
+}
 
-void Task::setCompletionDate(std::string_view date){m_completionDate = {date};}
-void Task::setCreationDate(std::string_view date){m_creationDate = {date};}
+void Task::setCreationDate(Date& date)
+{
+	m_creationDate = {date};
+	taskChanged();
+}
 
-void Task::clearCompletionDate() { m_completionDate = std::nullopt;}
-void Task::clearCreationDate(){ m_completionDate = std::nullopt;}
+void Task::setCompletionDate(std::string_view date){
+	m_completionDate = {date};
+	taskChanged();
+
+}
+void Task::setCreationDate(std::string_view date)
+{
+	m_creationDate = {date};
+	taskChanged();
+}
+
+void Task::clearCompletionDate() 
+{
+	m_completionDate = std::nullopt;
+	taskChanged();
+}
+void Task::clearCreationDate()
+{
+	m_completionDate = std::nullopt;
+	taskChanged();
+}
+
+
+void Task::setTaskListener(std::function<void(Task&)> listener)
+{
+	m_listener = {listener};
+}
+
+void Task::taskChanged()
+{
+	m_listener(*this);
+}
 
 template <typename T>
 std::ostream& operator<<(std::ostream& out, const std::optional<T>& data)

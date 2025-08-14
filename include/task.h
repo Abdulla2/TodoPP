@@ -5,6 +5,7 @@
 #include <string_view>
 #include <optional>
 #include "date.h"
+#include <functional>
 
 namespace TodoPP
 {
@@ -60,7 +61,7 @@ public:
 	void descChanged();
 	void editDesc(std::string_view desc);
 
-
+	void setTaskListener(std::function<void(Task&)> listener);
 	bool operator>(const Task& task) const;	
 
 	friend std::istream& operator>>(std::istream& in, Task& task);
@@ -70,6 +71,7 @@ public:
 	friend class Parser;
 private:
 	static std::vector<std::string_view> split_by(std::string_view str, char delim);
+	void taskChanged(); // This only calls the listener with this
 private:
 	// For now we'll define date as strings later we'll see what the STL offers for them
 	// using Date = std::string;
@@ -85,6 +87,7 @@ private:
 	std::vector<std::string_view> m_projectTags{};
 	std::vector<std::string_view> m_contextTags{};
 	std::vector<Set> m_specialTags{};
+	std::function<void(Task&)> m_listener;
 
 };
 }

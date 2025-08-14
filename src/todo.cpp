@@ -2,12 +2,11 @@
 #include <algorithm>
 #include <execution>
 
-
-
 namespace TodoPP
 {
 Todo::Todo(std::fstream file, int size_of_file)
 {
+	if(!file) throw "File Error";
 	// Average line length of 80
 	static constexpr auto average_line_size{80};
 	m_tasks.reserve(size_of_file/average_line_size);
@@ -18,12 +17,27 @@ Todo::Todo(std::fstream file, int size_of_file)
 	{
 		m_tasks.push_back(curr_task);
 		curr_task.setId(curr_line);
+		curr_task.setTaskListener([&](Task& task)
+			    {
+			    tasksListener(task);
+			    });
 	}
 
 	if(!file.eof()) throw "Error Parsing the file";
 
 	m_currentLastId = curr_line;
 
+	bool file_dirty {sortAndMarkChange()};
+	
+	file.close();
+	if(file_dirty)
+	{
+		fileChanged();
+	}
+}
+
+bool Todo::sortAndMarkChange()
+{
 	bool file_dirty {false};
 	std::sort(std::execution::seq, m_tasks.begin(), m_tasks.end(), [&file_dirty](const Task& task1, const Task& task2)
 	   {
@@ -31,25 +45,26 @@ Todo::Todo(std::fstream file, int size_of_file)
 	   if ( (task1 > task2) != (task1.getId() < task2.getId())) file_dirty = true;
 	   return task1 > task2;
 	   });
-	m_fileDirty = file_dirty;
+	return file_dirty;
 }
 
 void Todo::add(Task& task)
 {
-	m_fileDirty = true;
 	task.setId(m_currentLastId++);
 	m_tasks.push_back(task);
+	sortAndMarkChange();
+	fileChanged();
 }
 
 void Todo::add(std::string_view task)
 {
-	m_fileDirty = true;
-	m_tasks.push_back({task, static_cast<int>(m_tasks.size())});
+	m_tasks.push_back({task, m_currentLastId++});
+	sortAndMarkChange();
+	fileChanged();
 }
 
 void Todo::remove(int id)
 {
-	m_fileDirty = true;
 	
 	if((id < m_tasks.size()) && (m_tasks[id].getId() == id))
 	{
@@ -58,6 +73,8 @@ void Todo::remove(int id)
 	}
 
 	m_tasks.erase(getTaskPosById(id));
+	sortAndMarkChange();
+	fileChanged();
 }
 
 const std::vector<Task>& Todo::getAllTasks() const { return m_tasks;}
@@ -143,8 +160,6 @@ const std::vector<Task> Todo::getUnfinishedTasks() const
 	return getTasksBy(searcher);
 }
 
-
-
 const std::vector<Task> Todo::getTasksBy(const std::function<bool(const Task&)> searcher) const
 {
 	std::vector<Task> vec{};
@@ -158,4 +173,56 @@ const std::vector<Task> Todo::getTasksBy(const std::function<bool(const Task&)> 
 
 	return vec;
 }
+
+void Todo::flushToFile()
+{
+	if(m_fileDirty)
+	{
+		std::fstream file{m_fileName, std::ios::out | std::ios::trunc};
+
+		if (!file)
+		{
+			throw "File Error";
+		}
+		for (auto task : m_tasks)
+		{
+			file << task;
+		}
+		file.close();
+
+	}
+	m_fileDirty = {false};
+}
+
+
+void Todo::fileChanged()
+{
+	m_fileDirty = {true};
+	if(m_immediateFlush)
+	{
+		flushToFile();
+	}
+}
+
+void Todo::tasksListener(Task& task)
+{
+	bool file_dirty {sortAndMarkChange()};
+	if(file_dirty)
+	{
+		fileChanged();
+	}
+}
+
+void Todo::setFileImmediateFlush()
+{
+	m_immediateFlush = {true};
+
+	flushToFile();
+}
+
+void Todo::clearFileImmediateFlush()
+{
+	m_immediateFlush = {false};
+}
+
 }

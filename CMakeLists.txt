@@ -11,9 +11,11 @@ set(TodoPP_VERSION_MAJOR 0)
 set(TodoPP_VERSION_MINOR 1)
 set(TodoPP_VERSION_PATCH 0)
 
-set(TodoPP_SOURCES src/main.cpp src/todo.cpp src/task.cpp src/date.cpp)
+# set(TodoPP_SOURCES src/main.cpp src/todo.cpp src/task.cpp src/date.cpp)
+set(TodoPP_SOURCES src/todo.cpp src/task.cpp src/date.cpp)
 set(TodoPP_INCLUDE_DIRS include)
 
-add_executable(${PROJECT_NAME} ${TodoPP_SOURCES})
+# add_executable(${PROJECT_NAME} ${TodoPP_SOURCES})
+add_library(${PROJECT_NAME} STATIC ${TodoPP_SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${TodoPP_INCLUDE_DIRS} config.h)
 
