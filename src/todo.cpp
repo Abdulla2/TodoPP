@@ -15,12 +15,12 @@ Todo::Todo(std::fstream file, int size_of_file)
 
 	for(Task curr_task{}; file>>curr_task;curr_line++)
 	{
-		m_tasks.push_back(curr_task);
-		curr_task.setId(curr_line);
-		curr_task.setTaskListener([&](Task& task)
-			    {
-			    tasksListener(task);
-			    });
+        curr_task.setId(curr_line);
+        curr_task.setTaskListener([&](Task& task)
+                                  {
+                                      tasksListener(task);
+                                  });
+        m_tasks.push_back(curr_task);
 	}
 
 	if(!file.eof()) throw "Error Parsing the file";
@@ -79,7 +79,7 @@ void Todo::remove(int id)
 
 const std::vector<Task>& Todo::getAllTasks() const { return m_tasks;}
 
-const Task* Todo::getTaskById(const int id) const 
+Task* Todo::getTaskById(const int id)
 {
 	auto found = std::find_if(m_tasks.begin(), m_tasks.end(), [id](const Task& task)
 			   {
@@ -206,8 +206,8 @@ void Todo::fileChanged()
 
 void Todo::tasksListener(Task& task)
 {
-	bool file_dirty {sortAndMarkChange()};
-	if(file_dirty)
+    bool file_dirty {sortAndMarkChange()};
+    // if(file_dirty)
 	{
 		fileChanged();
 	}

@@ -45,8 +45,20 @@ void Task::setId(int id) {m_id = id;}
 
 const int Task::getId() const { return m_id;}
 const bool Task::isCompleted() const { return m_isCompleted;}
-void Task::setCompleted() { m_isCompleted = true;}
-void Task::clearCompleted() { m_isCompleted = false;}
+void Task::setCompleted()
+{
+    m_isCompleted = true;
+    taskChanged();
+}
+void Task::clearCompleted()
+{
+    m_isCompleted = false;
+    taskChanged();
+}
+void Task::toggleCompleted() {
+    m_isCompleted = !m_isCompleted;
+    taskChanged();
+}
 
 const std::vector<std::string_view> Task::getProjects() const { return m_projectTags;} 
 const std::vector<std::string_view> Task::getContexts() const { return m_contextTags;} 
@@ -76,7 +88,7 @@ void Task::appendToDesc(std::optional<const char> ch, std::string_view str)
 
 void Task::removeWordFromDesc(std::optional<const char> ch, std::string_view word)
 {
-	auto start { m_desc.find(word) };
+    // auto start { m_desc.find(word) };
 
 	for(std::size_t start{}; start != std::string::npos; start = {m_desc.find(word, start)})
 	{
@@ -164,7 +176,7 @@ void Task::setTaskListener(std::function<void(Task&)> listener)
 
 void Task::taskChanged()
 {
-	m_listener(*this);
+    m_listener(*this);
 }
 
 template <typename T>

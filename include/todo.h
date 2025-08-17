@@ -22,7 +22,7 @@ public:
 	void remove(int id);
 
 	const std::vector<Task>& getAllTasks() const;
-	const Task* getTaskById(const int id) const;
+    Task* getTaskById(const int id);
 
 	const std::vector<Task> getTasksByProject(std::string_view project) const;
 

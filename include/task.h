@@ -33,8 +33,9 @@ public:
 	const std::optional<Date> getCompletionDate() const; 
 	const bool isCompleted() const; 
 
-	void setCompleted(); 
-	void clearCompleted(); 
+	void setCompleted();
+    void clearCompleted();
+    void toggleCompleted();
 
 	void setPriority(char priority); 
 	void clearPriority(); 
