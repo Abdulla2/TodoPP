@@ -30,5 +30,9 @@ cmake .
 
 * Add unit testing.
 
+* Add a config support.
+
+* Add an option for being independent and not depending on the Std lib.
+
 * Much more.
 
