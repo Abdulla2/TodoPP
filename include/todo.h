@@ -17,8 +17,8 @@ public:
 	{
 		m_fileName = {static_cast<std::string>(file_name)};
 	}
-	void add(Task& task);
-	void add(std::string_view task);
+    void add(Task&& task);
+    void add(std::string_view task);
 	void remove(int id);
 
 	const std::vector<Task>& getAllTasks() const;

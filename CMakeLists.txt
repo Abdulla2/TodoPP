@@ -12,7 +12,7 @@ set(TodoPP_VERSION_MINOR 1)
 set(TodoPP_VERSION_PATCH 0)
 
 # set(TodoPP_SOURCES src/main.cpp src/todo.cpp src/task.cpp src/date.cpp)
-set(TodoPP_SOURCES src/todo.cpp src/task.cpp src/date.cpp)
+set(TodoPP_SOURCES src/todo.cpp src/task.cpp src/date.cpp include/todo.h include/task.h include/date.h)
 set(TodoPP_INCLUDE_DIRS include)
 
 # add_executable(${PROJECT_NAME} ${TodoPP_SOURCES})

@@ -48,9 +48,15 @@ bool Todo::sortAndMarkChange()
 	return file_dirty;
 }
 
-void Todo::add(Task& task)
+void Todo::add(Task&& task)
 {
-	task.setId(m_currentLastId++);
+    task.setId(m_currentLastId++);
+    task.setTaskListener([&](Task& task)
+                              {
+                                  tasksListener(task);
+                              });
+
+    // task.setId(m_currentLastId++);
 	m_tasks.push_back(task);
 	sortAndMarkChange();
 	fileChanged();
@@ -58,9 +64,7 @@ void Todo::add(Task& task)
 
 void Todo::add(std::string_view task)
 {
-	m_tasks.push_back({task, m_currentLastId++});
-	sortAndMarkChange();
-	fileChanged();
+    add(Task{task});
 }
 
 void Todo::remove(int id)
@@ -206,7 +210,7 @@ void Todo::fileChanged()
 
 void Todo::tasksListener(Task& task)
 {
-    bool file_dirty {sortAndMarkChange()};
+    sortAndMarkChange();
     // if(file_dirty)
 	{
 		fileChanged();
